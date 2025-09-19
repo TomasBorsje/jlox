@@ -33,8 +33,9 @@ public class Lox {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
+        System.out.println("=== BEGIN INTERPRETER ===");
         for (; ; ) {
-            System.out.println("> ");
+            System.out.print("> ");
             String line = reader.readLine();
             if (line == null) break;
             run(line);
@@ -52,7 +53,7 @@ public class Lox {
         }
     }
 
-    private static void error(int line, String message) {
+    static void error(int line, String message) {
         report(line, "", message);
     }
 

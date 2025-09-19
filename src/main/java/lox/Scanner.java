@@ -75,9 +75,20 @@ public class Scanner {
                     // Comments go until the end of the line
                     while(peek() != '\n' && !isAtEnd()) { advance(); }
                 }
+                else if(match('*')) {
+                    // C-style block comments like /* this! */
+                    while (peek() != '*' && peekNext() != '/') { advance(); }
+                    if(isAtEnd()) {
+                        Lox.error(line, "Unterminated C-style block comment.");
+                    }
+
+                    advance(); // Consume the ending * and /
+                    advance();
+                }
                 else {
                     addToken(SLASH);
                 }
+                break;
 
             case ' ':
             case '\r':

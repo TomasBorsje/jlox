@@ -53,7 +53,7 @@ public class Parser {
         return expr;
     }
 
-    // Ternary is right->left associative, compared to everything else whch
+    // Ternary is right->left associative
     private Expr ternary() {
         Expr expr = equality();
 

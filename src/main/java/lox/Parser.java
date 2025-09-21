@@ -7,7 +7,7 @@ import static lox.TokenType.*;
 /**
  *  Grammar so far, from the lowest precedence to highest:
  *
- *  expression  -> equality ;
+ *  expression  -> equality ( "," equality )* ;
  *  equality    -> comparison ( ( "==" | "!=" ) comparison )* ;
  *  comparison  -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  *  term        -> factor ( ( "+" | "-" ) factor )* ;
@@ -17,7 +17,7 @@ import static lox.TokenType.*;
  *  primary     -> NUMBER | STRING | "true" | "false" | "nil"
  *               | "(" expression ")" ;
  *
- *  NUMBER is any number literal (e.g. 12.34), and STRING is any string literal ("hi").
+ *  NUMBER is any number literal (e.g. 12.34), and STRING is any string literal in quotes (e.g. "hi").
  */
 public class Parser {
     private static class ParseError extends RuntimeException {}
@@ -38,7 +38,14 @@ public class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        Expr expr = equality();
+        while(match(COMMA)) {
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
     }
 
     private Expr equality() {

@@ -5,22 +5,25 @@ import java.util.List;
 import static lox.TokenType.*;
 
 /**
- *  Grammar so far, from the lowest precedence to highest:
+ * Grammar so far, from the lowest precedence to highest:
  *
- *  expression  -> equality ( "," equality )* ;
- *  equality    -> comparison ( ( "==" | "!=" ) comparison )* ;
- *  comparison  -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
- *  term        -> factor ( ( "+" | "-" ) factor )* ;
- *  factor      -> unary ( ( "*" | "/" ) unary )* ;
- *  unary       -> ( "!" | "-" ) unary
- *               | primary ;
- *  primary     -> NUMBER | STRING | "true" | "false" | "nil"
- *               | "(" expression ")" ;
+ * expression  -> ternary ( "," ternary )* ;
+ * ternary     -> equality ( "?" ternary ":" ternary ) ;
+ * equality    -> comparison ( ( "==" | "!=" ) comparison )* ;
+ * comparison  -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+ * term        -> factor ( ( "+" | "-" ) factor )* ;
+ * factor      -> unary ( ( "*" | "/" ) unary )* ;
+ * unary       -> ( "!" | "-" ) unary
+ *              | primary ;
+ * primary     -> NUMBER | STRING | "true" | "false" | "nil"
+ *              | "(" expression ")" ;
  *
- *  NUMBER is any number literal (e.g. 12.34), and STRING is any string literal in quotes (e.g. "hi").
+ * NUMBER is any number literal (e.g. 12.34), and STRING is any string literal in quotes (e.g. "hi").
+ * Ternary has right->left associativity, compared to everything else which has left->right associativity.
  */
 public class Parser {
-    private static class ParseError extends RuntimeException {}
+    private static class ParseError extends RuntimeException {
+    }
 
     private final List<Token> tokens;
     private int current = 0;
@@ -38,11 +41,27 @@ public class Parser {
     }
 
     private Expr expression() {
-        Expr expr = equality();
-        while(match(COMMA)) {
+        Expr expr = ternary();
+
+        // Comma operator
+        while (match(COMMA)) {
             Token operator = previous();
-            Expr right = equality();
+            Expr right = ternary();
             expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    // Ternary is right->left associative, compared to everything else whch
+    private Expr ternary() {
+        Expr expr = equality();
+
+        while (match(QUESTION_MARK)) {
+            Expr exprIfTrue = ternary();
+            consume(COLON, "Expect : for ternary after ?");
+            Expr exprIfFalse = ternary();
+            expr = new Expr.Ternary(expr, exprIfTrue, exprIfFalse);
         }
 
         return expr;
@@ -50,7 +69,7 @@ public class Parser {
 
     private Expr equality() {
         Expr expr = comparison();
-        while(match(BANG_EQUAL, EQUAL_EQUAL)) {
+        while (match(BANG_EQUAL, EQUAL_EQUAL)) {
             Token operator = previous();
             Expr right = comparison();
             expr = new Expr.Binary(expr, operator, right);
@@ -60,7 +79,7 @@ public class Parser {
 
     private Expr comparison() {
         Expr expr = term();
-        while(match(LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)) {
+        while (match(LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)) {
             Token operator = previous();
             Expr right = term();
             expr = new Expr.Binary(expr, operator, right);
@@ -70,7 +89,7 @@ public class Parser {
 
     private Expr term() {
         Expr expr = factor();
-        while(match(PLUS, MINUS)) {
+        while (match(PLUS, MINUS)) {
             Token operator = previous();
             Expr right = factor();
             expr = new Expr.Binary(expr, operator, right);
@@ -80,7 +99,7 @@ public class Parser {
 
     private Expr factor() {
         Expr expr = unary();
-        while(match(STAR, SLASH)) {
+        while (match(STAR, SLASH)) {
             Token operator = previous();
             Expr right = unary();
             expr = new Expr.Binary(expr, operator, right);
@@ -89,7 +108,7 @@ public class Parser {
     }
 
     private Expr unary() {
-        if(match(BANG, MINUS)) {
+        if (match(BANG, MINUS)) {
             Token operator = previous();
             Expr right = primary();
             return new Expr.Unary(operator, right);
@@ -98,13 +117,21 @@ public class Parser {
     }
 
     private Expr primary() {
-        if(match(TRUE)) { return new Expr.Literal(true); }
-        if(match(FALSE)) { return new Expr.Literal(false); }
-        if(match(NIL)) { return new Expr.Literal(null); }
+        if (match(TRUE)) {
+            return new Expr.Literal(true);
+        }
+        if (match(FALSE)) {
+            return new Expr.Literal(false);
+        }
+        if (match(NIL)) {
+            return new Expr.Literal(null);
+        }
 
-        if(match(STRING, NUMBER)) { return new Expr.Literal(previous().literal); }
+        if (match(STRING, NUMBER)) {
+            return new Expr.Literal(previous().literal);
+        }
 
-        if(match(LEFT_PAREN)) {
+        if (match(LEFT_PAREN)) {
             Expr expr = expression();
             // Require a closing parenthesis
             consume(RIGHT_PAREN, "Expect ) after expression.");
@@ -115,8 +142,8 @@ public class Parser {
     }
 
     private boolean match(TokenType... types) {
-        for(TokenType type : types) {
-            if(check(type)) {
+        for (TokenType type : types) {
+            if (check(type)) {
                 advance();
                 return true;
             }
@@ -125,17 +152,23 @@ public class Parser {
     }
 
     private Token consume(TokenType type, String message) {
-        if(check(type)) { return advance(); }
+        if (check(type)) {
+            return advance();
+        }
         throw error(peek(), message);
     }
 
     private boolean check(TokenType type) {
-        if(isAtEnd()) { return false; }
+        if (isAtEnd()) {
+            return false;
+        }
         return peek().type == type;
     }
 
     private Token advance() {
-        if(!isAtEnd()) { current++; }
+        if (!isAtEnd()) {
+            current++;
+        }
         return previous();
     }
 
@@ -148,7 +181,7 @@ public class Parser {
     }
 
     private Token previous() {
-        return tokens.get(current-1);
+        return tokens.get(current - 1);
     }
 
     private ParseError error(Token token, String message) {
@@ -159,12 +192,21 @@ public class Parser {
     // Discard tokens until we reach the start of a new statement
     private void synchronize() {
         advance(); // Move past problematic token
-        while(!isAtEnd()) {
-            if(previous().type == SEMICOLON) { return; } // Previous statement has ended, we can continue parsing
+        while (!isAtEnd()) {
+            if (previous().type == SEMICOLON) {
+                return;
+            } // Previous statement has ended, we can continue parsing
 
             // If the next token is the start of a new statement, continue
-            switch(peek().type) {
-                case CLASS: case FOR: case FUN: case IF: case PRINT: case RETURN: case VAR: case WHILE: {
+            switch (peek().type) {
+                case CLASS:
+                case FOR:
+                case FUN:
+                case IF:
+                case PRINT:
+                case RETURN:
+                case VAR:
+                case WHILE: {
                     return;
                 }
             }

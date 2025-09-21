@@ -18,7 +18,8 @@ public class GenerateAst {
                 "Binary   : Expr left, Token operator, Expr right",
                 "Grouping : Expr expression",
                 "Literal  : Object value",
-                "Unary    : Token operator, Expr right"
+                "Unary    : Token operator, Expr right",
+                "Ternary  : Expr condition, Expr exprIfTrue, Expr exprIfFalse"
         ));
     }
 
@@ -44,7 +45,7 @@ public class GenerateAst {
 
         // The base accept() method
         writer.println();
-        writer.println("<R> R accept(Visitor<R> visitor);");
+        writer.println("abstract <R> R accept(Visitor<R> visitor);");
 
         writer.println("}");
         writer.close();

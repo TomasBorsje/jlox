@@ -25,6 +25,11 @@ public class RpnAstPrinter implements Expr.Visitor<String> {
         return rpn(unary.operator.lexeme, unary.right);
     }
 
+    @Override
+    public String visitTernaryExpr(Expr.Ternary ternary) {
+        return rpn("?:", ternary.condition, ternary.exprIfTrue, ternary.exprIfFalse);
+    }
+
     private String rpn(String name, Expr... exprs) {
         StringBuilder builder = new StringBuilder();
 

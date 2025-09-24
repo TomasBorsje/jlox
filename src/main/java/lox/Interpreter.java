@@ -32,13 +32,6 @@ public class Interpreter implements Expr.Visitor<Object> {
         return null;
     }
 
-    private void checkNumberOperand(Token operator, Object operand) {
-        if (operand instanceof Double) {
-            return;
-        }
-        throw new RuntimeError(operator, "Operand must be a number.");
-    }
-
     @Override
     public Object visitGroupingExpr(Expr.Grouping grouping) {
         return evaluate(grouping.expression);
@@ -83,6 +76,7 @@ public class Interpreter implements Expr.Visitor<Object> {
             }
             case SLASH:
                 checkNumberOperands(binary.operator, left, right);
+                checkNonZeroOperand(binary.operator, right);
                 return (double) left / (double) right;
             case STAR:
                 checkNumberOperands(binary.operator, left, right);
@@ -96,11 +90,25 @@ public class Interpreter implements Expr.Visitor<Object> {
         return null;
     }
 
+    private void checkNumberOperand(Token operator, Object operand) {
+        if (operand instanceof Double) {
+            return;
+        }
+        throw new RuntimeError(operator, "Operand must be a number.");
+    }
+
     private void checkNumberOperands(Token operator, Object left, Object right) {
         if (left instanceof Double && right instanceof Double) {
             return;
         }
         throw new RuntimeError(operator, "Operands must be numbers.");
+    }
+
+    private void checkNonZeroOperand(Token operator, Object operand) {
+        if(operand instanceof Double number && number != 0) {
+            return;
+        }
+        throw new RuntimeError(operator, "Operand must not be 0.");
     }
 
     private boolean isEqual(Object a, Object b) {
